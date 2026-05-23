@@ -5,7 +5,12 @@ const dailyLogSchema = new mongoose.Schema({
   date: { type: String, required: true }, // "YYYY-MM-DD"
   mood: { type: Number, min: 1, max: 5 }, // 1–5
   sleepHours: { type: Number },
-  energyLevel: { type: Number, min: 1, max: 5 }, // 1–5
+  energyLevel: {
+    type: Number,
+    required: true,
+    min: 0,
+    max: 100
+  }, // 1–5
   moneySpent: { type: Number, default: 0 }, // ₹
   spendCategory: { type: String }, // Food/Travel/Shopping/Other
   note: { type: String },

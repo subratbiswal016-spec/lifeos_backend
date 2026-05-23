@@ -56,10 +56,13 @@ export const completeHabitForToday = async (req, res) => {
     const habitId = req.params.id;
     
     let log = await HabitLog.findOne({ userId: req.user._id, habitId, date });
+    let isCompletedToday = true;
+
     if (log) {
-      log.completed = true;
+      log.completed = true; // Ensure it stays true
       log.completedAt = new Date();
       await log.save();
+      isCompletedToday = true;
     } else {
       log = await HabitLog.create({
         userId: req.user._id,
@@ -68,8 +71,15 @@ export const completeHabitForToday = async (req, res) => {
         completed: true,
         completedAt: new Date()
       });
+      isCompletedToday = true;
     }
-    return successResponse(res, 200, 'Habit marked completed for today', log);
+
+    const habit = await Habit.findById(habitId);
+    
+    return successResponse(res, 200, 'Habit completion toggled', {
+      ...habit.toObject(),
+      isCompletedToday
+    });
   } catch (err) {
     return errorResponse(res, 500, 'Server error', err.message);
   }
@@ -94,7 +104,7 @@ export const getTodayHabits = async (req, res) => {
       const log = logs.find(l => l.habitId.toString() === habit._id.toString());
       return {
         ...habit.toObject(),
-        completedToday: log ? log.completed : false
+        isCompletedToday: log ? log.completed : false
       };
     });
     

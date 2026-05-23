@@ -1,9 +1,13 @@
 {
-  "name": "lifeos-india-backend",
+  "name": "lifeos",
   "version": "1.0.0",
   "description": "Backend for LifeOS India",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/subratbiswal016-spec/lifeos_backend.git"
+  },
   "license": "ISC",
-  "author": "",
+  "author": "subrat",
   "type": "module",
   "main": "server.js",
   "scripts": {
