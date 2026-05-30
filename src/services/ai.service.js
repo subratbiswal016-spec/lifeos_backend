@@ -7,6 +7,7 @@ import FamilyMember from '../models/FamilyMember.js';
 import Medicine from '../models/Medicine.js';
 import SymptomLog from '../models/SymptomLog.js';
 import StudySession from '../models/StudySession.js';
+import Subject from '../models/Subject.js';
 
 const systemPrompt = `You are LifeOS AI — a warm, helpful life assistant.
 Speak strictly in simple, natural English. Do NOT use Hindi words.
@@ -54,6 +55,9 @@ export const gatherUserContext = async (userId) => {
   const medicinesDueToday = await Medicine.find({ userId, isActive: true });
   const recentSymptoms = await SymptomLog.find({ userId }).sort({ date: -1 }).limit(5);
   
+  const subjects = await Subject.find({ userId, isActive: true });
+  const todaySessions = await StudySession.find({ userId, date: todayString });
+  
   return {
     user: { name: user.name, city: user.city, examPreparingFor: user.examPreparingFor, monthlyBudget: user.monthlyBudget },
     personal: {
@@ -72,10 +76,9 @@ export const gatherUserContext = async (userId) => {
       recentSymptoms
     },
     study: {
-      thisWeekHours: 32, // mock
-      subjectBreakdown: { Physics: 8, Chemistry: 6 }, // mock
-      studyStreak: 12, // mock
-      recentMockScores: [] // mock
+      subjects,
+      todaySessions,
+      studyInsight: "Compare dailyTargetHours in subjects with durationMinutes in todaySessions to see if they met their goal."
     }
   };
 };

@@ -6,6 +6,7 @@ const subjectSchema = new mongoose.Schema({
   emoji: { type: String },
   color: { type: String },
   weeklyTargetHours: { type: Number },
+  dailyTargetHours: { type: Number, default: 0 },
   isActive: { type: Boolean, default: true }
 }, {
   timestamps: true
