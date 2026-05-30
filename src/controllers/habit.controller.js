@@ -59,10 +59,10 @@ export const completeHabitForToday = async (req, res) => {
     let isCompletedToday = true;
 
     if (log) {
-      log.completed = true; // Ensure it stays true
-      log.completedAt = new Date();
+      log.completed = !log.completed; // Toggle it
+      log.completedAt = log.completed ? new Date() : null;
       await log.save();
-      isCompletedToday = true;
+      isCompletedToday = log.completed;
     } else {
       log = await HabitLog.create({
         userId: req.user._id,

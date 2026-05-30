@@ -1,4 +1,4 @@
-import { Anthropic } from '@anthropic-ai/sdk';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import User from '../models/User.js';
 import DailyLog from '../models/DailyLog.js';
 import Habit from '../models/Habit.js';
@@ -8,31 +8,61 @@ import Medicine from '../models/Medicine.js';
 import SymptomLog from '../models/SymptomLog.js';
 import StudySession from '../models/StudySession.js';
 
-const systemPrompt = `You are LifeOS AI — a warm, helpful Indian life assistant.
-Speak in simple English with occasional Hindi words like 'bilkul', 'achha', 'sahi hai', 'ek kaam karo'.
+const systemPrompt = `You are LifeOS AI — a warm, helpful life assistant.
+Speak strictly in simple, natural English. Do NOT use Hindi words.
 Help with personal wellbeing, family health, and studies.
 Give data-driven insights. Be encouraging, never judgmental.
-Keep answers under 120 words unless generating a full report.
-End every reply with one actionable tip labeled 'Karo Abhi:'.`;
+CRITICAL RULES:
+1. ONLY answer the specific question asked. Do NOT dump all the user's context, study details, or family details unless they explicitly ask for it.
+2. If asked about spending, just give the spending details. Compare it with their monthly budget if one is set. If asked about studies, just give study details.
+3. BE BRUTALLY CONCISE. Give direct, 1 to 2 sentence answers MAXIMUM. Do not write paragraphs. Cut all introductory filler.
+4. End every reply with one short actionable tip.`;
 
-const anthropic = new Anthropic({
-  apiKey: process.env.CLAUDE_API_KEY || 'dummy-key-for-now', // Will fail if not set in real environment
-});
+let genAI = null;
+
+export const getGenAIInstance = () => {
+  if (!genAI) {
+    const geminiApiKey = process.env.GEMINI_API_KEY || '';
+    console.log(`[AI Service] Gemini API Key loaded: ${geminiApiKey ? geminiApiKey.substring(0, 10) + '...' : 'NOT SET'}`);
+    genAI = new GoogleGenerativeAI(geminiApiKey);
+  }
+  return genAI;
+};
 
 export const gatherUserContext = async (userId) => {
   const user = await User.findById(userId);
   
-  // Basic mock fetch for context (in real life we'd date-filter properly)
-  const last7Days = await DailyLog.find({ userId }).sort({ date: -1 }).limit(7);
+  const today = new Date();
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(today.getDate() - 30);
+  
+  const last30DaysLogs = await DailyLog.find({ 
+    userId, 
+    date: { $gte: thirtyDaysAgo.toISOString().split('T')[0] } 
+  }).sort({ date: -1 });
+
+  const last7Days = last30DaysLogs.slice(0, 7);
+
+  // Calculate Spend
+  const todayString = today.toISOString().split('T')[0];
+  const spendToday = last30DaysLogs.find(log => log.date === todayString)?.moneySpent || 0;
+  const spendLast7Days = last7Days.reduce((acc, log) => acc + (log.moneySpent || 0), 0);
+  const spendLast30Days = last30DaysLogs.reduce((acc, log) => acc + (log.moneySpent || 0), 0);
+
   const habits = await Habit.find({ userId, isActive: true });
   const members = await FamilyMember.find({ userId });
   const medicinesDueToday = await Medicine.find({ userId, isActive: true });
   const recentSymptoms = await SymptomLog.find({ userId }).sort({ date: -1 }).limit(5);
   
   return {
-    user: { name: user.name, city: user.city, examPreparingFor: user.examPreparingFor },
+    user: { name: user.name, city: user.city, examPreparingFor: user.examPreparingFor, monthlyBudget: user.monthlyBudget },
     personal: {
       last7Days,
+      spending: {
+        spendToday,
+        spendLast7Days,
+        spendLast30Days
+      },
       habits,
       habitStreaks: { "Reading": 5 } // mock
     },
@@ -51,19 +81,16 @@ export const gatherUserContext = async (userId) => {
 };
 
 export const callClaudeAPI = async (context, question) => {
-  const prompt = `Context:\n${JSON.stringify(context, null, 2)}\n\nUser Question: ${question}`;
+  const prompt = `${systemPrompt}\n\nContext:\n${JSON.stringify(context, null, 2)}\n\nUser Question: ${question}`;
   
   try {
-    const response = await anthropic.messages.create({
-      model: 'claude-3-haiku-20240307',
-      max_tokens: 300,
-      system: systemPrompt,
-      messages: [{ role: 'user', content: prompt }]
-    });
-    
-    return response.content[0].text;
+    const aiInstance = getGenAIInstance();
+    const model = aiInstance.getGenerativeModel({ model: 'gemini-flash-lite-latest' });
+    const result = await model.generateContent(prompt);
+    const response = result.response;
+    return response.text();
   } catch (err) {
-    console.error("Claude API Error:", err);
+    console.error("Gemini API Error:", err);
     return "Maaf karna, something went wrong with the AI service. Please try again later.";
   }
 };

@@ -15,9 +15,11 @@ export const register = async (req, res) => {
     const { error } = registerSchema.validate(req.body);
     if (error) return errorResponse(res, 400, error.details[0].message);
 
-    const { name, email, password, city, examPreparingFor, monthlyBudget, wakeTime, sleepTime } = req.body;
+    const { name, password, city, examPreparingFor, monthlyBudget, wakeTime, sleepTime } = req.body;
+    const email = req.body.email.toLowerCase();
 
-    const userExists = await User.findOne({ email });
+    const escapeRegex = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const userExists = await User.findOne({ email: new RegExp('^' + escapeRegex(email) + '$', 'i') });
     if (userExists) return errorResponse(res, 400, 'User already exists');
 
     const salt = await bcrypt.genSalt(10);
@@ -46,9 +48,11 @@ export const login = async (req, res) => {
     const { error } = loginSchema.validate(req.body);
     if (error) return errorResponse(res, 400, error.details[0].message);
 
-    const { email, password } = req.body;
+    const email = req.body.email;
+    const { password } = req.body;
 
-    const user = await User.findOne({ email });
+    const escapeRegex = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const user = await User.findOne({ email: new RegExp('^' + escapeRegex(email) + '$', 'i') });
     if (!user) return errorResponse(res, 401, 'Invalid email or password');
 
     const isMatch = await bcrypt.compare(password, user.passwordHash);
