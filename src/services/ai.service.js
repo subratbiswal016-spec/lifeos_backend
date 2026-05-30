@@ -94,6 +94,6 @@ export const callClaudeAPI = async (context, question) => {
     return response.text();
   } catch (err) {
     console.error("Gemini API Error:", err);
-    return "Maaf karna, something went wrong with the AI service. Please try again later.";
+    return "Maaf karna, something went wrong with the AI service: " + err.message;
   }
 };
