@@ -1,5 +1,6 @@
 import { gatherUserContext, callClaudeAPI } from '../services/ai.service.js';
 import { successResponse, errorResponse } from '../utils/response.js';
+import DailyLog from '../models/DailyLog.js';
 
 export const chat = async (req, res) => {
   try {
@@ -17,8 +18,41 @@ export const chat = async (req, res) => {
 
 export const generateDailyTip = async (req, res) => {
   try {
+    const todayString = new Date().toISOString().split('T')[0];
+    let dailyLog = await DailyLog.findOne({ userId: req.user._id, date: todayString });
+    
+    // Cache hit: return the already generated tip for today
+    if (dailyLog && dailyLog.aiDailyTip) {
+      return successResponse(res, 200, 'Daily tip', { tip: dailyLog.aiDailyTip });
+    }
+
     const context = await gatherUserContext(req.user._id);
-    const reply = await callClaudeAPI(context, "Generate a short, encouraging daily tip based on my recent activity.");
+    let reply = await callClaudeAPI(context, "Generate a short, encouraging daily tip based on my recent activity.");
+    
+    // Fallback if AI service hits a quota limit or fails
+    if (reply.includes("Maaf karna")) {
+       const fallbacks = [
+         "Drink 2 liters of water today!",
+         "Take a 5-minute walk outside and stretch.",
+         "Read 10 pages of a good book today.",
+         "Focus on progress, not perfection."
+       ];
+       reply = fallbacks[Math.floor(Math.random() * fallbacks.length)];
+    } else {
+       // Save to cache on successful generation
+       if (dailyLog) {
+         dailyLog.aiDailyTip = reply;
+         await dailyLog.save();
+       } else {
+         await DailyLog.create({
+           userId: req.user._id,
+           date: todayString,
+           energyLevel: 50, // default
+           aiDailyTip: reply
+         });
+       }
+    }
+
     return successResponse(res, 200, 'Daily tip', { tip: reply });
   } catch (err) {
     return errorResponse(res, 500, 'Server error', err.message);

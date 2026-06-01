@@ -14,7 +14,8 @@ const dailyLogSchema = new mongoose.Schema({
   moneySpent: { type: Number, default: 0 }, // ₹
   spendCategory: { type: String }, // Food/Travel/Shopping/Other
   note: { type: String },
-  weather: { type: String } // sunny/rainy/cold/cloudy
+  weather: { type: String }, // sunny/rainy/cold/cloudy
+  aiDailyTip: { type: String } // Caches the daily tip from Gemini
 }, {
   timestamps: true
 });

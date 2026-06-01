@@ -88,12 +88,15 @@ export const callClaudeAPI = async (context, question) => {
   
   try {
     const aiInstance = getGenAIInstance();
-    const model = aiInstance.getGenerativeModel({ model: 'gemini-flash-latest' });
+    const model = aiInstance.getGenerativeModel({ model: 'gemini-1.5-flash' });
     const result = await model.generateContent(prompt);
     const response = result.response;
     return response.text();
   } catch (err) {
     console.error("Gemini API Error:", err);
-    return "Maaf karna, something went wrong with the AI service: " + err.message;
+    if (err.message && err.message.includes('429')) {
+      return "Oops! It seems I'm receiving too many requests right now and my daily limit has been reached. Please try again a bit later!";
+    }
+    return "Maaf karna, something went wrong with my AI systems. Let's try again in a moment.";
   }
 };
