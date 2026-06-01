@@ -49,10 +49,10 @@ export const gatherUserContext = async (userId) => {
 
   // Calculate Spend using exact calendar boundaries from Expense collection
   const now = new Date();
-  
+
   // This Month (1st to now)
   const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  
+
   // Last Month (1st to last day of previous month)
   const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
   const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
@@ -85,10 +85,10 @@ export const gatherUserContext = async (userId) => {
   for (const exp of recentExpenses) {
     const d = exp.date;
     if (d.toISOString().split('T')[0] === todayString) spendToday += exp.amount;
-    
+
     if (d >= startOfThisMonth) spendThisMonth += exp.amount;
     if (d >= startOfLastMonth && d <= endOfLastMonth) spendLastMonth += exp.amount;
-    
+
     if (d >= startOfThisWeek) spendThisWeek += exp.amount;
     if (d >= startOfLastWeek && d <= endOfLastWeek) spendLastWeek += exp.amount;
   }
@@ -133,7 +133,7 @@ export const callClaudeAPI = async (context, question) => {
 
   try {
     const aiInstance = getGenAIInstance();
-    const model = aiInstance.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = aiInstance.getGenerativeModel({ model: 'gemini-2.5-flash' });
     const result = await model.generateContent(prompt);
     const response = result.response;
     return response.text();

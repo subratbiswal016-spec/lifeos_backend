@@ -31,9 +31,9 @@ export const generateDailyTip = async (req, res) => {
       "Limit sugary snacks today; opt for fresh fruits or nuts instead."
     ];
     
-    // Rotate tip every 1 hour based on time since epoch
-    const hourIndex = Math.floor(Date.now() / (3600 * 1000)) % tips.length;
-    const reply = tips[hourIndex];
+    // Rotate tip every 5 minutes based on time since epoch
+    const intervalIndex = Math.floor(Date.now() / (5 * 60 * 1000)) % tips.length;
+    const reply = tips[intervalIndex];
 
     return successResponse(res, 200, 'Daily tip', { tip: reply });
   } catch (err) {
