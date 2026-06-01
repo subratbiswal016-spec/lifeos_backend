@@ -32,14 +32,14 @@ export const getGenAIInstance = () => {
 
 export const gatherUserContext = async (userId) => {
   const user = await User.findById(userId);
-  
+
   const today = new Date();
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(today.getDate() - 30);
-  
-  const last30DaysLogs = await DailyLog.find({ 
-    userId, 
-    date: { $gte: thirtyDaysAgo.toISOString().split('T')[0] } 
+
+  const last30DaysLogs = await DailyLog.find({
+    userId,
+    date: { $gte: thirtyDaysAgo.toISOString().split('T')[0] }
   }).sort({ date: -1 });
 
   const last7Days = last30DaysLogs.slice(0, 7);
@@ -54,10 +54,10 @@ export const gatherUserContext = async (userId) => {
   const members = await FamilyMember.find({ userId });
   const medicinesDueToday = await Medicine.find({ userId, isActive: true });
   const recentSymptoms = await SymptomLog.find({ userId }).sort({ date: -1 }).limit(5);
-  
+
   const subjects = await Subject.find({ userId, isActive: true });
   const todaySessions = await StudySession.find({ userId, date: todayString });
-  
+
   return {
     user: { name: user.name, city: user.city, examPreparingFor: user.examPreparingFor, monthlyBudget: user.monthlyBudget },
     personal: {
@@ -85,10 +85,10 @@ export const gatherUserContext = async (userId) => {
 
 export const callClaudeAPI = async (context, question) => {
   const prompt = `${systemPrompt}\n\nContext:\n${JSON.stringify(context, null, 2)}\n\nUser Question: ${question}`;
-  
+
   try {
     const aiInstance = getGenAIInstance();
-    const model = aiInstance.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = aiInstance.getGenerativeModel({ model: 'gemini-2.5-flash' });
     const result = await model.generateContent(prompt);
     const response = result.response;
     return response.text();
