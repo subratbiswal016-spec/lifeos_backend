@@ -66,9 +66,12 @@ export const logMedicine = async (req, res) => {
       await log.save();
     } else {
       const medicine = await Medicine.findById(req.params.id);
+      if (!medicine) {
+        return errorResponse(res, 404, 'Medicine not found');
+      }
       log = await MedicineLog.create({
         userId: req.user._id,
-        memberId: medicine.memberId,
+        memberId: medicine.memberId || null,
         medicineId: req.params.id,
         date,
         scheduledTime,

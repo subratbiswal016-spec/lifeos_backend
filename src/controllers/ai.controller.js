@@ -18,40 +18,22 @@ export const chat = async (req, res) => {
 
 export const generateDailyTip = async (req, res) => {
   try {
-    const todayString = new Date().toISOString().split('T')[0];
-    let dailyLog = await DailyLog.findOne({ userId: req.user._id, date: todayString });
+    const tips = [
+      "Drink 2-3 liters of water today to stay energetic and focused!",
+      "Take a 5-minute screen break every hour to protect your eyes.",
+      "Spend 10 minutes planning your day to boost productivity.",
+      "Remember to take deep breaths during stressful study sessions.",
+      "Consistency is the key to mastering any skill. Keep showing up daily!",
+      "A healthy mind lives in a healthy body. Try to get 7-8 hours of sleep tonight.",
+      "Review your expenses from yesterday to stay on top of your budget.",
+      "Spend a few quality minutes talking with a family member today.",
+      "Small milestones lead to big success. Celebrate your progress today!",
+      "Limit sugary snacks today; opt for fresh fruits or nuts instead."
+    ];
     
-    // Cache hit: return the already generated tip for today
-    if (dailyLog && dailyLog.aiDailyTip) {
-      return successResponse(res, 200, 'Daily tip', { tip: dailyLog.aiDailyTip });
-    }
-
-    const context = await gatherUserContext(req.user._id);
-    let reply = await callClaudeAPI(context, "Generate a short, encouraging daily tip based on my recent activity.");
-    
-    // Fallback if AI service hits a quota limit or fails
-    if (reply.includes("Maaf karna") || reply.includes("AI Error:") || reply.includes("Oops!")) {
-       const fallbacks = [
-         "Drink 2 liters of water today!",
-         "Take a 5-minute walk outside and stretch.",
-         "Read 10 pages of a good book today.",
-         "Focus on progress, not perfection."
-       ];
-       reply = fallbacks[Math.floor(Math.random() * fallbacks.length)];
-    } else {
-       // Save to cache on successful generation
-       if (dailyLog) {
-         dailyLog.aiDailyTip = reply;
-         await dailyLog.save();
-       } else {
-         await DailyLog.create({
-           userId: req.user._id,
-           date: todayString,
-           energyLevel: 50, // default
-           aiDailyTip: reply
-         });
-       }
-    }
+    // Rotate tip every 1 hour based on time since epoch
+    const hourIndex = Math.floor(Date.now() / (3600 * 1000)) % tips.length;
+    const reply = tips[hourIndex];
 
     return successResponse(res, 200, 'Daily tip', { tip: reply });
   } catch (err) {

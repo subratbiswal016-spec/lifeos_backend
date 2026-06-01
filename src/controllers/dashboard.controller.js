@@ -12,7 +12,7 @@ export const getDashboardSummary = async (req, res) => {
     const habits = await Habit.find({ userId });
     
     // 2. Get upcoming medicines (simplified)
-    const medicines = await Medicine.find({ userId }).populate('memberId').limit(3);
+    const medicines = await Medicine.find({ userId, isActive: true }).populate('memberId').limit(3);
     
     // 3. Get Family Members count
     const importFamilyMember = await import('../models/FamilyMember.js');
