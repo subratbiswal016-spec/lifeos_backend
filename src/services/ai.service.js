@@ -8,6 +8,7 @@ import Medicine from '../models/Medicine.js';
 import SymptomLog from '../models/SymptomLog.js';
 import StudySession from '../models/StudySession.js';
 import Subject from '../models/Subject.js';
+import Expense from '../models/Expense.js';
 
 const systemPrompt = `You are LifeOS AI — a warm, helpful life assistant.
 Speak strictly in simple, natural English. Do NOT use Hindi words.
@@ -44,11 +45,53 @@ export const gatherUserContext = async (userId) => {
 
   const last7Days = last30DaysLogs.slice(0, 7);
 
-  // Calculate Spend
   const todayString = today.toISOString().split('T')[0];
-  const spendToday = last30DaysLogs.find(log => log.date === todayString)?.moneySpent || 0;
-  const spendLast7Days = last7Days.reduce((acc, log) => acc + (log.moneySpent || 0), 0);
-  const spendLast30Days = last30DaysLogs.reduce((acc, log) => acc + (log.moneySpent || 0), 0);
+
+  // Calculate Spend using exact calendar boundaries from Expense collection
+  const now = new Date();
+  
+  // This Month (1st to now)
+  const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  
+  // Last Month (1st to last day of previous month)
+  const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+
+  // This Week (Monday to Sunday)
+  const dayOfWeek = now.getDay() || 7; // 1 (Mon) to 7 (Sun)
+  const startOfThisWeek = new Date(now);
+  startOfThisWeek.setHours(0, 0, 0, 0);
+  startOfThisWeek.setDate(now.getDate() - dayOfWeek + 1);
+
+  // Last Week
+  const startOfLastWeek = new Date(startOfThisWeek);
+  startOfLastWeek.setDate(startOfThisWeek.getDate() - 7);
+  const endOfLastWeek = new Date(startOfThisWeek);
+  endOfLastWeek.setMilliseconds(-1);
+
+  // Fetch all expenses since start of last month to calculate efficiently in memory
+  const recentExpenses = await Expense.find({
+    userId,
+    type: 'expense',
+    date: { $gte: startOfLastMonth }
+  });
+
+  let spendToday = 0;
+  let spendThisWeek = 0;
+  let spendLastWeek = 0;
+  let spendThisMonth = 0;
+  let spendLastMonth = 0;
+
+  for (const exp of recentExpenses) {
+    const d = exp.date;
+    if (d.toISOString().split('T')[0] === todayString) spendToday += exp.amount;
+    
+    if (d >= startOfThisMonth) spendThisMonth += exp.amount;
+    if (d >= startOfLastMonth && d <= endOfLastMonth) spendLastMonth += exp.amount;
+    
+    if (d >= startOfThisWeek) spendThisWeek += exp.amount;
+    if (d >= startOfLastWeek && d <= endOfLastWeek) spendLastWeek += exp.amount;
+  }
 
   const habits = await Habit.find({ userId, isActive: true });
   const members = await FamilyMember.find({ userId });
@@ -64,8 +107,10 @@ export const gatherUserContext = async (userId) => {
       last7Days,
       spending: {
         spendToday,
-        spendLast7Days,
-        spendLast30Days
+        spendThisWeek,
+        spendLastWeek,
+        spendThisMonth,
+        spendLastMonth
       },
       habits,
       habitStreaks: { "Reading": 5 } // mock

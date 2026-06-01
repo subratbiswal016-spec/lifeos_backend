@@ -30,7 +30,7 @@ export const generateDailyTip = async (req, res) => {
     let reply = await callClaudeAPI(context, "Generate a short, encouraging daily tip based on my recent activity.");
     
     // Fallback if AI service hits a quota limit or fails
-    if (reply.includes("Maaf karna")) {
+    if (reply.includes("Maaf karna") || reply.includes("AI Error:") || reply.includes("Oops!")) {
        const fallbacks = [
          "Drink 2 liters of water today!",
          "Take a 5-minute walk outside and stretch.",
