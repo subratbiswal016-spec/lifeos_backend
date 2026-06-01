@@ -97,6 +97,6 @@ export const callClaudeAPI = async (context, question) => {
     if (err.message && err.message.includes('429')) {
       return "Oops! It seems I'm receiving too many requests right now and my daily limit has been reached. Please try again a bit later!";
     }
-    return "Maaf karna, something went wrong with my AI systems. Let's try again in a moment.";
+    return "AI Error: " + err.message;
   }
 };
