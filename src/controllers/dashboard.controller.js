@@ -52,8 +52,12 @@ export const getDashboardSummary = async (req, res) => {
     const reminders = [];
     medicines.forEach(m => {
       reminders.push({
-        title: `${m.name} - ${m.memberId ? m.memberId.name : 'Self'}`,
+        id: m._id.toString(),
+        title: m.name,
+        memberName: m.memberId ? m.memberId.name : 'Self',
+        dose: m.dose || '',
         time: m.reminderTimes && m.reminderTimes.length > 0 ? m.reminderTimes[0] : 'Upcoming',
+        reminderTimes: m.reminderTimes || [],
         type: 'medicine'
       });
     });
