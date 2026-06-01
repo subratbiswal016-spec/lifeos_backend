@@ -118,12 +118,73 @@ export const getWeekSessions = async (req, res) => {
 
 export const getStudyStats = async (req, res) => {
   try {
-    // Basic mock stats implementation
+    const sessions = await StudySession.find({ userId: req.user._id }).populate('subjectId', 'name');
+    
+    let totalMinutes = 0;
+    let thisWeekMinutes = 0;
+    const subjectBreakdown = {};
+    const datesStudied = new Set();
+    
+    const now = new Date();
+    const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    
+    sessions.forEach(session => {
+      const duration = session.durationMinutes || 0;
+      totalMinutes += duration;
+      
+      if (session.startTime >= oneWeekAgo) {
+        thisWeekMinutes += duration;
+      }
+      
+      if (session.subjectId) {
+        const subjectName = session.subjectId.name;
+        if (!subjectBreakdown[subjectName]) {
+          subjectBreakdown[subjectName] = 0;
+        }
+        subjectBreakdown[subjectName] += duration;
+      }
+      
+      datesStudied.add(session.date);
+    });
+    
+    // Calculate streak
+    let studyStreak = 0;
+    const sortedDates = Array.from(datesStudied).sort().reverse(); // Latest date first
+    const todayStr = getTodayDateString();
+    
+    let currentDate = new Date(todayStr);
+    let checkDateStr = todayStr;
+    
+    if (sortedDates.length > 0) {
+      if (sortedDates[0] === todayStr || sortedDates[0] === new Date(currentDate.getTime() - 86400000).toISOString().split('T')[0]) {
+        // Streak is alive
+        for (let i = 0; i < sortedDates.length; i++) {
+          if (sortedDates[i] === checkDateStr) {
+            studyStreak++;
+            currentDate = new Date(currentDate.getTime() - 86400000);
+            checkDateStr = currentDate.toISOString().split('T')[0];
+          } else {
+             // Handle case where they didn't study today but studied yesterday (streak still active)
+             if (i === 0 && sortedDates[0] !== todayStr) {
+                 checkDateStr = sortedDates[0];
+                 i--; // Re-check this index against yesterday
+                 continue;
+             }
+             break;
+          }
+        }
+      }
+    }
+    
+    // Convert minutes to hours for frontend (or keep as minutes? Let's send hours with 1 decimal)
     const stats = {
-      totalHours: 120,
-      thisWeekHours: 32,
-      studyStreak: 12,
-      subjectBreakdown: { Physics: 8, Chemistry: 6 }
+      totalHours: (totalMinutes / 60).toFixed(1),
+      thisWeekHours: (thisWeekMinutes / 60).toFixed(1),
+      studyStreak,
+      subjectBreakdown: Object.keys(subjectBreakdown).reduce((acc, key) => {
+        acc[key] = parseFloat((subjectBreakdown[key] / 60).toFixed(1));
+        return acc;
+      }, {})
     };
     return successResponse(res, 200, 'Study stats fetched', stats);
   } catch (err) {

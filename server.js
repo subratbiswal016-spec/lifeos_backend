@@ -32,6 +32,7 @@ import medicineRoutes from './src/routes/medicine.routes.js';
 import padhoaiRoutes from './src/routes/padhoai.routes.js';
 import aiRoutes from './src/routes/ai.routes.js';
 import pdfRoutes from './src/routes/pdf.routes.js';
+import udharRoutes from './src/routes/udhar.routes.js';
 
 // Health Check Route
 app.get('/api/health', (req, res) => {
@@ -53,6 +54,7 @@ app.use('/api', gharlogRoutes); // /visits, /symptoms
 app.use('/api', padhoaiRoutes); // /subjects, /study
 app.use('/api/ai', aiRoutes);
 app.use('/api/pdf', pdfRoutes);
+app.use('/api/udhar', udharRoutes);
 
 import { startCronJobs } from './src/services/scheduler.service.js';
 

@@ -2,6 +2,7 @@ import cron from 'node-cron';
 import User from '../models/User.js';
 import Medicine from '../models/Medicine.js';
 import Habit from '../models/Habit.js';
+import DailyLog from '../models/DailyLog.js';
 import { sendPushNotification } from './fcm.service.js';
 import { gatherUserContext, callClaudeAPI } from './ai.service.js';
 
@@ -32,20 +33,51 @@ export const startCronJobs = () => {
     }
   });
 
-  // 2. Every night 9 PM — send daily summary notification
+  // 2. Every night 9 PM — send daily summary notification if no log exists
   cron.schedule('0 21 * * *', async () => {
     try {
       const users = await User.find({ fcmToken: { $exists: true, $ne: null } });
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
       for (const user of users) {
-        await sendPushNotification(
-          user.fcmToken,
-          'Daily Check-in',
-          'Kaisa raha aaj ka din? Log your daily mood and expenses.',
-          { type: 'daily_checkin' }
-        );
+        const logExists = await DailyLog.exists({ userId: user._id, date: today });
+        if (!logExists) {
+          await sendPushNotification(
+            user.fcmToken,
+            'Daily Check-in Missed',
+            'Kaisa raha aaj ka din? You haven\'t checked in yet. Log your mood and expenses!',
+            { type: 'daily_checkin' }
+          );
+        }
       }
     } catch (err) {
       console.error('Error in nightly summary cron:', err);
+    }
+  });
+
+  // 2b. Every hour — remind to set monthly budget if missing
+  cron.schedule('0 * * * *', async () => {
+    try {
+      const users = await User.find({ 
+        fcmToken: { $exists: true, $ne: null },
+        $or: [
+          { monthlyBudget: { $exists: false } },
+          { monthlyBudget: null },
+          { monthlyBudget: 0 }
+        ]
+      });
+
+      for (const user of users) {
+        await sendPushNotification(
+          user.fcmToken,
+          'Set Your Monthly Budget',
+          'Aapne abhi tak budget set nahi kiya! Tap here to complete your profile and track expenses better.',
+          { type: 'budget_reminder' }
+        );
+      }
+    } catch (err) {
+      console.error('Error in hourly budget reminder cron:', err);
     }
   });
 

@@ -84,7 +84,11 @@ export const getDashboardSummary = async (req, res) => {
           subjectsStudied: uniqueSubjects,
           studyStreak: studySessions.length > 0 ? 1 : 0 // Basic streak logic
         },
-        reminders
+        reminders,
+        monthlyBudget: req.user.monthlyBudget,
+        phone: req.user.phone,
+        city: req.user.city,
+        profilePhotoUrl: req.user.profilePhotoUrl
       }
     });
   } catch (error) {
