@@ -1,7 +1,7 @@
 import express from 'express';
 import { 
   getMembers, addMember, updateMember, deleteMember,
-  getVisits, logVisit, updateVisit, deleteVisit, uploadPrescription,
+  getAllVisits, getVisits, logVisit, updateVisit, deleteVisit, uploadPrescription,
   getSymptoms, logSymptom, getLatestSymptom
 } from '../controllers/gharlog.controller.js';
 import { protect } from '../middleware/auth.middleware.js';
@@ -16,6 +16,7 @@ router.put('/members/:id', updateMember);
 router.delete('/members/:id', deleteMember);
 
 // Doctor Visits (we'll mount the whole router at /api so we define full path here for these)
+router.get('/visits', getAllVisits);
 router.get('/visits/:memberId', getVisits);
 router.post('/visits', logVisit);
 router.put('/visits/:id', updateVisit);

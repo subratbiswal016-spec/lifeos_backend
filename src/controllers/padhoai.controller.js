@@ -128,6 +128,13 @@ export const getStudyStats = async (req, res) => {
     const now = new Date();
     const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     
+    // Initialize last 7 days for the chart
+    const dailyBreakdown = {};
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(now.getTime() - i * 86400000).toISOString().split('T')[0];
+      dailyBreakdown[d] = 0;
+    }
+    
     sessions.forEach(session => {
       const duration = session.durationMinutes || 0;
       totalMinutes += duration;
@@ -142,6 +149,10 @@ export const getStudyStats = async (req, res) => {
           subjectBreakdown[subjectName] = 0;
         }
         subjectBreakdown[subjectName] += duration;
+      }
+      
+      if (dailyBreakdown[session.date] !== undefined) {
+        dailyBreakdown[session.date] += duration;
       }
       
       datesStudied.add(session.date);
@@ -184,7 +195,11 @@ export const getStudyStats = async (req, res) => {
       subjectBreakdown: Object.keys(subjectBreakdown).reduce((acc, key) => {
         acc[key] = parseFloat((subjectBreakdown[key] / 60).toFixed(1));
         return acc;
-      }, {})
+      }, {}),
+      dailyBreakdown: Object.keys(dailyBreakdown).map(date => ({
+        date,
+        hours: parseFloat((dailyBreakdown[date] / 60).toFixed(1))
+      }))
     };
     return successResponse(res, 200, 'Study stats fetched', stats);
   } catch (err) {

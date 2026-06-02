@@ -6,8 +6,30 @@ const getTodayDateString = () => new Date().toISOString().split('T')[0];
 
 export const getMedicines = async (req, res) => {
   try {
-    const medicines = await Medicine.find({ memberId: req.params.memberId, userId: req.user._id, isActive: true });
-    return successResponse(res, 200, 'Medicines fetched', medicines);
+    const medicines = await Medicine.find({ memberId: req.params.memberId, userId: req.user._id, isActive: true }).lean();
+    
+    const todayString = new Date().toISOString().split('T')[0];
+    const importMedicineLog = await import('../models/MedicineLog.js');
+    const MedicineLog = importMedicineLog.default;
+    const logs = await MedicineLog.find({ 
+      userId: req.user._id, 
+      date: todayString, 
+      status: 'taken' 
+    });
+
+    const enriched = medicines.map(m => {
+      const takenTimes = [];
+      if (m.reminderTimes) {
+         m.reminderTimes.forEach(t => {
+           if (logs.some(l => l.medicineId.toString() === m._id.toString() && l.scheduledTime === t)) {
+             takenTimes.push(t);
+           }
+         });
+      }
+      return { ...m, id: m._id, takenTimes };
+    });
+
+    return successResponse(res, 200, 'Medicines fetched', enriched);
   } catch (err) {
     return errorResponse(res, 500, 'Server error', err.message);
   }

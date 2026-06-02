@@ -49,16 +49,25 @@ export const getDashboardSummary = async (req, res) => {
     const spend = dailyLog?.moneySpent || 0;
 
     // Prepare reminders list
+    const importMedicineLog = await import('../models/MedicineLog.js');
+    const MedicineLog = importMedicineLog.default;
+    const todayLogs = await MedicineLog.find({ userId, date: todayString });
+
     const reminders = [];
     medicines.forEach(m => {
-      reminders.push({
-        id: m._id.toString(),
-        title: m.name,
-        memberName: m.memberId ? m.memberId.name : 'Self',
-        dose: m.dose || '',
-        time: m.reminderTimes && m.reminderTimes.length > 0 ? m.reminderTimes[0] : 'Upcoming',
-        reminderTimes: m.reminderTimes || [],
-        type: 'medicine'
+      const times = m.reminderTimes && m.reminderTimes.length > 0 ? m.reminderTimes : ['Upcoming'];
+      times.forEach(t => {
+        const isTaken = todayLogs.some(l => l.medicineId.toString() === m._id.toString() && l.scheduledTime === t && l.status === 'taken');
+        reminders.push({
+          id: m._id.toString(),
+          title: m.name,
+          memberName: m.memberId ? m.memberId.name : 'Self',
+          dose: m.dose || '',
+          time: t,
+          reminderTimes: m.reminderTimes || [],
+          type: 'medicine',
+          isTaken
+        });
       });
     });
     

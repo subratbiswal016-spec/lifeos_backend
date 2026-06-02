@@ -4,6 +4,16 @@ import SymptomLog from '../models/SymptomLog.js';
 import { successResponse, errorResponse } from '../utils/response.js';
 
 // --- FAMILY MEMBERS ---
+export const getAllVisits = async (req, res) => {
+  try {
+    const visits = await DoctorVisit.find({ userId: req.user._id })
+      .populate('memberId', 'name relation');
+    return successResponse(res, 200, 'All visits fetched', visits);
+  } catch (err) {
+    return errorResponse(res, 500, 'Server error', err.message);
+  }
+};
+
 export const getMembers = async (req, res) => {
   try {
     const members = await FamilyMember.find({ userId: req.user._id });
@@ -49,7 +59,8 @@ export const deleteMember = async (req, res) => {
 // --- DOCTOR VISITS ---
 export const getVisits = async (req, res) => {
   try {
-    const visits = await DoctorVisit.find({ memberId: req.params.memberId, userId: req.user._id });
+    const visits = await DoctorVisit.find({ memberId: req.params.memberId, userId: req.user._id })
+      .populate('memberId', 'name relation');
     return successResponse(res, 200, 'Visits fetched', visits);
   } catch (err) {
     return errorResponse(res, 500, 'Server error', err.message);

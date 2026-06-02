@@ -5,7 +5,8 @@ const medicineSchema = new mongoose.Schema({
   memberId: { type: mongoose.Schema.Types.ObjectId, ref: 'FamilyMember', required: true },
   name: { type: String, required: true },
   dose: { type: String }, // "500mg"
-  timesPerDay: { type: Number },
+  timesPerDay: { type: Number, default: 1 },
+  durationDays: { type: Number, default: 0 },
   reminderTimes: [{ type: String }], // ["08:00", "20:00"]
   startDate: { type: String }, // "YYYY-MM-DD"
   endDate: { type: String },
