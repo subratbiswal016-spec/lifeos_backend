@@ -1,5 +1,5 @@
 import express from 'express';
-import { updateFcmToken, getProfile, updateProfile, deleteAccount } from '../controllers/user.controller.js';
+import { updateFcmToken, getProfile, updateProfile, deleteAccount, exportData, changePassword } from '../controllers/user.controller.js';
 import { getDashboardSummary } from '../controllers/dashboard.controller.js';
 import { protect } from '../middleware/auth.middleware.js';
 
@@ -11,5 +11,7 @@ router.get('/profile', getProfile);
 router.put('/profile', updateProfile);
 router.put('/fcm-token', updateFcmToken);
 router.delete('/account', deleteAccount);
+router.get('/export-data', exportData);
+router.post('/change-password', changePassword);
 
 export default router;

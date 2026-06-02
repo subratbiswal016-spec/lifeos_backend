@@ -17,7 +17,9 @@ const userSchema = new mongoose.Schema({
   aiMessagesUsedThisWeek: { type: Number, default: 0 },
   aiMessagesResetAt: { type: Date },
   profilePhotoUrl: { type: String },
-  lastActiveAt: { type: Date }
+  lastActiveAt: { type: Date },
+  resetPasswordOtp: { type: String },
+  resetPasswordOtpExpires: { type: Date }
 }, {
   timestamps: true // This will automatically manage `createdAt` and `updatedAt`
 });

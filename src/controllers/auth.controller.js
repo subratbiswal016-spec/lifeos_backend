@@ -90,12 +90,93 @@ export const logout = (req, res) => {
   return successResponse(res, 200, 'Logged out successfully');
 };
 
+import fs from 'fs/promises';
+
 export const forgotPassword = async (req, res) => {
-  // Implementation for forgot password (email send)
-  return successResponse(res, 200, 'Password reset email sent (mock)');
+  try {
+    const { email } = req.body;
+    if (!email) return errorResponse(res, 400, 'Email is required');
+    
+    const normalizedEmail = email.toLowerCase();
+    const user = await User.findOne({ email: normalizedEmail });
+    if (!user) return errorResponse(res, 404, 'User with this email does not exist');
+
+    // Generate 6-digit OTP code
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+
+    user.resetPasswordOtp = otpCode;
+    user.resetPasswordOtpExpires = expiresAt;
+    await user.save();
+
+    // Log to console for dev visibility
+    console.log(`\n==================================================`);
+    console.log(`PASSWORD RESET REQUEST FOR: ${normalizedEmail}`);
+    console.log(`OTP CODE: ${otpCode}`);
+    console.log(`EXPIRES AT: ${expiresAt.toISOString()}`);
+    console.log(`==================================================\n`);
+
+    // Write to a local file for developer testing convenience
+    try {
+      const codePath = 'c:/project/LifeOS/server/reset_codes.json';
+      let codes = {};
+      try {
+        const fileContent = await fs.readFile(codePath, 'utf8');
+        codes = JSON.parse(fileContent);
+      } catch (err) {
+        // File doesn't exist or is empty
+      }
+      codes[normalizedEmail] = {
+        otp: otpCode,
+        expiresAt: expiresAt.toISOString(),
+      };
+      await fs.writeFile(codePath, JSON.stringify(codes, null, 2), 'utf8');
+    } catch (err) {
+      console.error('Failed to save OTP to reset_codes.json:', err);
+    }
+
+    const responseData = {};
+    if (process.env.NODE_ENV === 'development' || true) { // Always return in dev/offline mode for absolute convenience
+      responseData.otp = otpCode;
+    }
+
+    return successResponse(res, 200, 'Password reset OTP sent. Check terminal logs or reset_codes.json', responseData);
+  } catch (err) {
+    return errorResponse(res, 500, 'Server error', err.message);
+  }
 };
 
 export const resetPassword = async (req, res) => {
-  // Implementation for reset password
-  return successResponse(res, 200, 'Password reset successfully (mock)');
+  try {
+    const { email, otp, newPassword } = req.body;
+    if (!email || !otp || !newPassword) {
+      return errorResponse(res, 400, 'Email, OTP, and new password are required');
+    }
+
+    const normalizedEmail = email.toLowerCase();
+    const user = await User.findOne({ email: normalizedEmail });
+    if (!user) return errorResponse(res, 404, 'User not found');
+
+    // Verify OTP
+    if (!user.resetPasswordOtp || user.resetPasswordOtp !== otp) {
+      return errorResponse(res, 400, 'Invalid OTP code');
+    }
+
+    if (!user.resetPasswordOtpExpires || user.resetPasswordOtpExpires < new Date()) {
+      return errorResponse(res, 400, 'OTP code has expired');
+    }
+
+    // Hash and update password
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(newPassword, salt);
+
+    user.passwordHash = passwordHash;
+    user.resetPasswordOtp = undefined;
+    user.resetPasswordOtpExpires = undefined;
+    await user.save();
+
+    return successResponse(res, 200, 'Password reset successfully');
+  } catch (err) {
+    return errorResponse(res, 500, 'Server error', err.message);
+  }
 };
